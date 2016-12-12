@@ -41,7 +41,6 @@ then
     ln -s /opt/dmg/plugins/plugin_mqtt
     ln -s /opt/dmg/plugins/plugin_script
     ln -s /opt/dmg/plugins/plugin_vdevice
-    ln -s /opt/dmg/plugins/plugin_rfxbnz
     ln -s /opt/dmg/plugins/plugin_ping
     ln -s /opt/dmg/plugins/plugin_diskfree
  
