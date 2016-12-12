@@ -1,0 +1,235 @@
+= Docker Domogik
+
+:toc:
+
+{nbsp}
+
+////
+asciidoc -o README.html README.asciidoc
+////
+
+== Description
+
+Les Dockerfiles fournis permettent de générer un conteneur pour l'application domotique **Domogik** et un conteneur **Mysql**.
+
+Je me suis inspiré du dockerfile fourni sur le link:https://github.com/domogik/domogik/tree/develop/docker[github] officiel de link:http://www.domogik.org/fr/[Domogik], logiciel libre de domotique. 
+
+Le conteneur Domogik sera lié au lancement au conteneur MySql. 
+La base de donnée **domogik** et celle de **domoweb** seront hébergées sur le 'host docker', celles-ci seront conservée même si les conteneurs seront supprimés ou reconstruits.
+
+
+Pour facilité l'accés au conteneur Domogik, un serveur **sshd** est inclu.
+
+
+**NOTE**: Le conteneur Domogik fourni ne respecte pas forcement la philisophie Docker (un conteneur pour un service). Ces dockerfiles ont pour but de fournir un conteneur dédié plutot au developpement/test de Domogik tout en permettant d'isoler l'application.
+
+
+
+== Conteneur Mysql
+
+=== Changer les compte root Linux/MySql
+
+Ceux-ci sont déclarés dans le fichier **Dokerfile**
+
+* **ARG** ROOTPWD='azer1234'  (Déclaré avec **ARG** dans le Dockerfile car **ENV** le rend visible dans l'environnement du conteneur !)
+* **ENV** MYSQLROOTPWD='azer1234'
+
+
+=== Générer l'image MySql
+
+---------------------------------------------------------------------------------------------------
+$ cd Mysql
+$ docker build -t home/mysql:v1 .
+---------------------------------------------------------------------------------------------------
+
+**NOTE**: L'image est génèrée à partir d'une image offcielle **debian/jessie**.
+
+
+=== Lancer le conteneur à partir de l'image générée
+
+---------------------------------------------------------------------------------------------------
+$ docker run -d -p 3306:3306 -v /opt/data/docker/mysql:/var/lib/mysql -h mysqld --name home_mysql home/mysql:v1
+---------------------------------------------------------------------------------------------------
+
+* Le paramètre '-p' permet de 'mapper' le port 3306 du conteneur sur le même port du 'host docker'.
+* Le paramètre '-v' permet de 'mapper' le répertoire mysql sur le 'host docker'.
+* Le paramètre '-h' initialise le 'hostname' du conteneur MySql
+* Le paramètre '--name' nom donné au conteneur MySql
+
+
+
+=== Test de l'accés à MySql
+
+A partir du 'host docker':
+
+---------------------------------------------------------------------------------------------------
+$ docker inspect --format '{{ .NetworkSettings.IPAddress }}' home_mysql
+172.17.0.2
+$ mysql -u root -p -h 172.17.0.2
+---------------------------------------------------------------------------------------------------
+ 
+ 
+== Conteneur Domogik
+
+=== Adapter les paramètres du conteneur
+
+==== Dans le **Dockerfile**
+
+Valeurs par défaut:
+
+* **ENV** DOMOGIK_RELEASE=develop
+* **ENV** DOMOGIKMQ_RELEASE=develop
+* **ENV** DOMOWEB_RELEASE=develop
+* **ENV** PLUGINS_RELEASE=develop
+* **ENV** DOMOGIKID=mydomogikid (id for domogik metrics)
+* **ENV** USERNAME=domogik
+* **ENV** USERUID=1000
+* **ENV** USERGID=1000
+* **ENV** MYSQLROOTPWD='azer1234' (le mot passe root MySql du conteneur créé plus haut)
+* **ENV** MYSQLUSERPWD='azer1234'
+* **ENV** MYSQLHOST=mysqldb (le hostname/alias du conteneur MySql lié)
+* **ARG** ROOTPWD='azer1234'  (le mot passe root du conteneur Domogik)
+* **ARG** USERPWD='azer1234'
+
+
+=== Générer (link:https://docs.docker.com/engine/reference/commandline/build/[docker build]) l'image Domogik
+
+---------------------------------------------------------------------------------------------------
+$ cd Domogik
+$ docker build -t home/domogik:v1 .
+---------------------------------------------------------------------------------------------------
+
+**NOTE**: L'image est génèrée à partir d'une image offcielle **debian/jessie**.
+
+
+=== Lancer le conteneur (link:https://docs.docker.com/engine/reference/commandline/run/[docker run]) à partir de l'image générée
+
+
+---------------------------------------------------------------------------------------------------
+$ docker run -d -p 40422:22 -p 40404:40404 -p 40406:40406 -v /opt/data/docker/domoweb:/var/lib/domoweb --link home_mysql:mysqldb -h mydomogik --name home_domogik home/domogik:v1 
+---------------------------------------------------------------------------------------------------
+
+* Le paramètre '-p' permet de 'mapper' les ports ssh, domogik et domoweb.
+* Le paramètre '-v' permet de 'mapper' le répertoire de la base domoweb sur le 'host docker'.
+* Le paramètre '--link' permet de lier le conteneur MySql au conteneur Domogik.
+* Le paramètre '-h' initialise le 'hostname' du conteneur Domogik
+* Le paramètre '-name' nom donné au conteneur Domogik
+* Le parametre '--device' pourra être rajouter si l'accés à des ports du host docker est nécessaire: '--device=/dev/ttyUSB0:/dev/ttyUSB0'
+
+**ATTENTION**: Le premier lancement du conteneur va finaliser l'installation de Domogik avec le lien MySql. 
+Il faudra vérifier la fin de l'installation avec un link:https://docs.docker.com/engine/reference/commandline/logs/[docker logs] du conteneur avant d'accéder aux services Domogik/web:
+
+---------------------------------------------------------------------------------------------------
+$ docker logs -f home_domogik
+Create mysql database
+Install. Domogik with user domogik
+...
+ [ Installing /etc/logrotate/domoweb ] 
+ [ Updating Domoweb DB... ] 
+ ==> Creating new database: /var/lib/domoweb/db.sqlite  
+ ==> Adding initial data  
+ ==> Adding /opt/dmg/domoweb to site-packages  
+ ==> Not testing Domoweb Installation  
+Domogik starting ...
+ * Starting 0MQ broker ... Done.
+ * Starting 0MQ forwarder ... Done.
+ * Starting xPL (python version) ... Done.
+ * Starting Manager (with -a -d -x -s -b) ...  Done.
+ * Starting DomoWeb...
+   Checking if Domogik is available (127.0.0.1:40406) ... Done.
+Server listening on 0.0.0.0 port 22.
+Server listening on :: port 22.
+---------------------------------------------------------------------------------------------------
+
+
+=== Test de l'accés au conteneur Domogik
+
+---------------------------------------------------------------------------------------------------
+$ docker inspect --format '{{ .NetworkSettings.IPAddress }}' home_domogik
+172.17.0.3
+
+$ ssh domogik@172.17.0.3
+ou
+$ ssh domogik@host_docker -p 40422
+---------------------------------------------------------------------------------------------------
+
+Si souci d'accés ssh ou autre, possible de lancer un terminal sur le conteneur:
+
+---------------------------------------------------------------------------------------------------
+$ docker exec -it home_domogik /bin/bash
+---------------------------------------------------------------------------------------------------
+
+Possible de vérifier le bon accés à la base MySql:
+
+---------------------------------------------------------------------------------------------------
+$ mysql -u root -p -h mysqld        # A partir du conteneur Domogik
+---------------------------------------------------------------------------------------------------
+
+**NOTE**:  Le parametre 'link' qui lie les conteneur MySql au conteneur Domogik 
+a renseigné automatiquement le fichier **/etc/hosts** du conteneur Domogik avec l'@IP du serveur MySql.
+
+---------------------------------------------------------------------------------------------------
+172.17.0.2      mysqldb mysqld home_mysql
+---------------------------------------------------------------------------------------------------
+
+
+=== Arrét du conteneur Domogik
+
+Pour arréter un conteur docker proprement, la commande link:https://docs.docker.com/engine/reference/commandline/stop/[docker stop] peut suffir 
+mais comme le script startup inclus un arrét de Domogik, il faudra augmenter le temps d'attente de docker pour avoir un arrét propre de Domogik avant un kill forcé .
+
+---------------------------------------------------------------------------------------------------
+$ docker stop -t 60 home_domogik
+
+---------------------------------------------------------------------------------------------------
+
+
+La commande link:https://docs.docker.com/engine/reference/commandline/logs/[docker logs] permettra de suivre dans un autre terminal l'arrét si besoin:
+
+---------------------------------------------------------------------------------------------------
+$ docker logs -f home_domogik
+...
+Server listening on 0.0.0.0 port 22.
+Server listening on :: port 22.
+Domogik stopping ...
+ * Stopping DomoWeb... Done.
+ * Stopping Plugins... Done.
+ * Stopping Manager... Done.
+ * Stopping XPL... Done.
+ * Stopping 0MQ broker... Done.
+ * Stopping 0MQ forwarder... Done.
+Received signal 15; terminating.
+
+---------------------------------------------------------------------------------------------------
+
+
+=== Accés à l'application Domogik/Domoweb
+
+Il suffira de pointer son naviguateur sur:
+
+**http://host_docker:40406** pour Domogik
+
+**http://host_docker:40404'** pour Domoweb
+
+
+
+=== Lancement du conteneur Domogik ou MySql
+
+Un simple link:https://docs.docker.com/engine/reference/commandline/stop/[docker start conteneur] suffit:
+
+---------------------------------------------------------------------------------------------------
+$ docker start home_mysql (A lancer en premier)
+$ docker start home_domogik
+---------------------------------------------------------------------------------------------------
+
+
+
+=== Commiter le conteneur
+
+Il est possible de convertir le conteneur en image avec link:https://docs.docker.com/engine/reference/commandline/commit/[docker commit] pour le transférer sur un autre serveur ou pour modifier sa configuration.
+
+Par exemple si il y a besoin d'ouvrir d'autres ports réseaux, comme ci-dessous pour ouvrir le port 8080.
+
+---------------------------------------------------------------------------------------------------
+$ docker commit --change="EXPOSE 8080" home_domogik  home/domogik:v1.1
+---------------------------------------------------------------------------------------------------
