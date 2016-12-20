@@ -69,7 +69,7 @@ RUN groupadd -r ${USERNAME} --gid=${USERGID}  &&  useradd -m -g ${USERNAME} --ui
 RUN echo "${USERNAME}:${USERPWD}" | chpasswd
 RUN adduser ${USERNAME} root && adduser ${USERNAME} staff && adduser ${USERNAME} sudo && adduser ${USERNAME} plugdev
 # For some personal configuration
-#ADD user/ /home/${USERNAME}/
+#ADD ${USERNAME}/ /home/${USERNAME}/
 #RUN chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}
  
 ### Copy Domogik
