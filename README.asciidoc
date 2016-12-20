@@ -35,7 +35,7 @@ Ceux-ci sont déclarés dans le fichier **Dokerfile**
 * **ENV** MYSQLROOTPWD='azer1234'
 
 **NOTE**: Les déclarations de variables (**ENV**) ou d'arguments (**ARG**) sont placées à l'intérieure du fichier Dockerfile et non en début. 
-Cela permet de les modifier sans que le "**docker build**" reprenne depuis le début. Il continura au dernier conteneur en cache avant la modification.
+Cela permet de les modifier sans que le "**docker build**" reprenne depuis le début. Il reprendra au dernier conteneur en cache avant la modification.
 
 
 === Générer l'image MySql
