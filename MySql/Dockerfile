@@ -3,9 +3,6 @@ FROM debian:jessie
 
 MAINTAINER Domos <domos.vesta@gmail.com>
 
-ARG ROOTPWD='azer1234'
-ENV MYSQLROOTPWD='azer1234'
-
 # Paramètres apt
 ENV DEBIAN_FRONTEND noninteractive
 ENV INITRD No
@@ -35,6 +32,7 @@ ENV LC_ALL fr_FR.UTF-8
 RUN echo "Europe/Paris" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
 
 # root
+ARG ROOTPWD='azer1234'
 RUN echo "root:${ROOTPWD}" | chpasswd
 # For some personal configuration
 #ADD root/.bashrc root/.bash_aliases root/.vimrc  /root/
@@ -48,6 +46,7 @@ WORKDIR /root
 # Exposer le port MySql
 EXPOSE 3306
 
+ENV MYSQLROOTPWD='azer1234'
 ADD ./mysqlstartup.sh /opt/mysqlstartup.sh
 # CMD command must be in 'exec form' (list) otherwise 'trap' command in script will not receive SIGTERM signal !
 CMD ["/opt/mysqlstartup.sh"]

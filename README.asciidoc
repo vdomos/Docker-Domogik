@@ -27,12 +27,15 @@ Pour facilité l'accés au conteneur Domogik, un serveur **sshd** est inclu.
 
 == Conteneur Mysql
 
-=== Changer les compte root Linux/MySql
+=== Changer les comptes root Linux/MySql
 
 Ceux-ci sont déclarés dans le fichier **Dokerfile**
 
 * **ARG** ROOTPWD='azer1234'  (Déclaré avec **ARG** dans le Dockerfile car **ENV** le rend visible dans l'environnement du conteneur !)
 * **ENV** MYSQLROOTPWD='azer1234'
+
+**NOTE**: Les déclarations de variables (**ENV**) ou d'arguments (**ARG**) sont placées à l'intérieure du fichier Dockerfile et non en début. 
+Cela permet de les modifier sans que le "**docker build**" reprenne depuis le début. Il continura au dernier conteneur en cache avant la modification.
 
 
 === Générer l'image MySql
@@ -165,7 +168,7 @@ Possible de vérifier le bon accés à la base MySql:
 $ mysql -u root -p -h mysqld        # A partir du conteneur Domogik
 ---------------------------------------------------------------------------------------------------
 
-**NOTE**:  Le parametre 'link' qui lie les conteneur MySql au conteneur Domogik 
+**NOTE**:  Le parametre 'link' qui lie le conteneur MySql au conteneur Domogik 
 a renseigné automatiquement le fichier **/etc/hosts** du conteneur Domogik avec l'@IP du serveur MySql.
 
 ---------------------------------------------------------------------------------------------------

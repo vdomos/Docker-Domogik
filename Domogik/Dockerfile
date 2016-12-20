@@ -3,23 +3,6 @@ FROM debian:jessie
 
 MAINTAINER Domos <domos.vesta@gmail.com>
 
-# Unlike an ARG instruction, ENV values are always persisted in the built image.
-ENV DOMOGIK_RELEASE=develop
-ENV DOMOGIKMQ_RELEASE=develop
-ENV DOMOWEB_RELEASE=develop
-ENV PLUGINS_RELEASE=develop
-ENV USERNAME=domogik
-ENV USERUID=1000
-ENV USERGID=1000
-ENV MYSQLROOTPWD='azer1234'
-ENV MYSQLUSERPWD='azer1234'
-ENV MYSQLHOST=mysqldb
-ENV DOMOGIKID=mydockerdomogik
-
-# ARG variable can be change at build-time to the builder with the docker build command using the --build-arg USERNAME=<value> flag.
-ARG ROOTPWD='azer1234'
-ARG USERPWD='azer1234'
-
 ### Paramètres apt
 ENV DEBIAN_FRONTEND noninteractive
 ENV INITRD No
@@ -71,19 +54,30 @@ RUN mkdir -p -m 0755 /var/run/sshd
 RUN sed -i "s/PermitRootLogin without-password/PermitRootLogin yes/g" /etc/ssh/sshd_config
 
 ### root
+ARG ROOTPWD='azer1234'
 RUN echo "root:${ROOTPWD}" | chpasswd
 # For some personal configuration
-##ADD root/.bashrc root/.bash_aliases root/.vimrc  /root/
+#ADD root/.bashrc root/.bash_aliases root/.vimrc  /root/
+#ADD root/sudoers  /etc/sudoers
 
 ### User
+ENV USERNAME=domogik
+ENV USERUID=1000
+ENV USERGID=1000
+ARG USERPWD='azer1234'
 RUN groupadd -r ${USERNAME} --gid=${USERGID}  &&  useradd -m -g ${USERNAME} --uid=${USERUID} -s /bin/bash ${USERNAME}
 RUN echo "${USERNAME}:${USERPWD}" | chpasswd
 RUN adduser ${USERNAME} root && adduser ${USERNAME} staff && adduser ${USERNAME} sudo && adduser ${USERNAME} plugdev
 # For some personal configuration
-##ADD user/ /home/${USERNAME}/
-##RUN chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}
+#ADD user/ /home/${USERNAME}/
+#RUN chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}
  
 ### Copy Domogik
+ENV DOMOGIK_RELEASE=develop
+ENV DOMOGIKMQ_RELEASE=develop
+ENV DOMOWEB_RELEASE=develop
+ENV PLUGINS_RELEASE=develop
+
 RUN mkdir -p /opt/dmg /opt/dmg/plugins \
  && chown ${USERNAME}.${USERNAME} /opt/dmg
 
@@ -183,6 +177,10 @@ WORKDIR /root
 EXPOSE 22 40406 40404
 
 ### Commande au démarrage des containers
+ENV MYSQLROOTPWD='azer1234'
+ENV MYSQLUSERPWD='azer1234'
+ENV MYSQLHOST=mysqldb
+ENV DOMOGIKID=mydomogik
 ADD ./dmgstartup.sh /opt/dmg/dmgstartup.sh
 # CMD command must be in 'exec form' (list) otherwise 'trap' command in script will not receive SIGTERM signal !
 CMD ["/opt/dmg/dmgstartup.sh"]
